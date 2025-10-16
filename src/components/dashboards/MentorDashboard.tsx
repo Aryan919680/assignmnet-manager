@@ -19,7 +19,7 @@ interface Assignment {
   created_at: string;
   file_path: string;
   student_id: string;
-  student: { full_name: string; email: string };
+  profiles: { full_name: string; email: string };
 }
 
 interface MentorDashboardProps {
@@ -42,7 +42,7 @@ export default function MentorDashboard({ user }: MentorDashboardProps) {
       .from("assignments")
       .select(`
         *,
-        student:student_id (full_name, email)
+        profiles!assignments_student_id_fkey (full_name, email)
       `)
       .in("status", ["pending", "rejected"])
       .order("created_at", { ascending: false });
@@ -106,7 +106,7 @@ export default function MentorDashboard({ user }: MentorDashboardProps) {
                   <CardDescription className="mt-1">{assignment.description}</CardDescription>
                   <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
                     <UserIcon className="h-4 w-4" />
-                    <span>{assignment.student.full_name} ({assignment.student.email})</span>
+                    <span>{assignment.profiles.full_name} ({assignment.profiles.email})</span>
                   </div>
                 </div>
                 <Badge variant="warning">Needs Review</Badge>
