@@ -19,7 +19,7 @@ interface Assignment {
   created_at: string;
   file_path: string;
   student_id: string;
-  profiles: { full_name: string; email: string };
+  profiles?: { full_name: string; email: string } | null;
 }
 
 interface MentorDashboardProps {
@@ -38,16 +38,40 @@ export default function MentorDashboard({ user }: MentorDashboardProps) {
   }, []);
 
   const fetchAssignments = async () => {
-    const { data } = await supabase
+    const { data: assignmentRows, error: aErr } = await supabase
       .from("assignments")
-      .select(`
-        *,
-        profiles!assignments_student_id_fkey (full_name, email)
-      `)
+      .select("*")
       .in("status", ["pending", "rejected"])
       .order("created_at", { ascending: false });
 
-    if (data) setAssignments(data as any);
+    if (aErr) {
+      toast.error(aErr.message);
+      return;
+    }
+
+    if (!assignmentRows || assignmentRows.length === 0) {
+      setAssignments([]);
+      return;
+    }
+
+    const studentIds = Array.from(new Set(assignmentRows.map((a: any) => a.student_id)));
+    const { data: profileRows, error: pErr } = await supabase
+      .from("profiles")
+      .select("id, full_name, email")
+      .in("id", studentIds);
+
+    if (pErr || !profileRows) {
+      setAssignments(assignmentRows as any);
+      return;
+    }
+
+    const profileMap = new Map(profileRows.map((p: any) => [p.id, p]));
+    const enriched = (assignmentRows as any[]).map((a) => ({
+      ...a,
+      profiles: profileMap.get(a.student_id) || null,
+    }));
+
+    setAssignments(enriched as any);
   };
 
   const handleReview = async () => {
@@ -106,7 +130,7 @@ export default function MentorDashboard({ user }: MentorDashboardProps) {
                   <CardDescription className="mt-1">{assignment.description}</CardDescription>
                   <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
                     <UserIcon className="h-4 w-4" />
-                    <span>{assignment.profiles.full_name} ({assignment.profiles.email})</span>
+                    <span>{assignment.profiles?.full_name || "Unknown"} ({assignment.profiles?.email || "N/A"})</span>
                   </div>
                 </div>
                 <Badge variant="warning">Needs Review</Badge>
