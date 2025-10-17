@@ -78,12 +78,13 @@ export default function MentorDashboard({ user }: MentorDashboardProps) {
   const openPdf = async (path: string) => {
     const { data, error } = await supabase.storage
       .from('assignments')
-      .createSignedUrl(path, 600);
-    if (error || !data?.signedUrl) {
+      .download(path);
+    if (error || !data) {
       toast.error(error?.message || 'Unable to open file');
       return;
     }
-    setPdfUrl(data.signedUrl);
+    const url = URL.createObjectURL(data);
+    setPdfUrl(url);
   };
 
   const handleReview = async () => {
@@ -203,7 +204,12 @@ export default function MentorDashboard({ user }: MentorDashboardProps) {
           </div>
         </DialogContent>
       </Dialog>
-      <Dialog open={!!pdfUrl} onOpenChange={() => setPdfUrl(null)}>
+      <Dialog open={!!pdfUrl} onOpenChange={(open) => {
+        if (!open && pdfUrl?.startsWith('blob:')) {
+          URL.revokeObjectURL(pdfUrl);
+        }
+        if (!open) setPdfUrl(null);
+      }}>
         <DialogContent className="max-w-5xl">
           <DialogHeader>
             <DialogTitle>View PDF</DialogTitle>
