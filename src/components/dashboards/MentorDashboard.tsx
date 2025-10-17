@@ -32,6 +32,7 @@ export default function MentorDashboard({ user }: MentorDashboardProps) {
   const [marks, setMarks] = useState("");
   const [comments, setComments] = useState("");
   const [loading, setLoading] = useState(false);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
 
   useEffect(() => {
     fetchAssignments();
@@ -72,6 +73,17 @@ export default function MentorDashboard({ user }: MentorDashboardProps) {
     }));
 
     setAssignments(enriched as any);
+  };
+
+  const openPdf = async (path: string) => {
+    const { data, error } = await supabase.storage
+      .from('assignments')
+      .createSignedUrl(path, 600);
+    if (error || !data?.signedUrl) {
+      toast.error(error?.message || 'Unable to open file');
+      return;
+    }
+    setPdfUrl(data.signedUrl);
   };
 
   const handleReview = async () => {
@@ -145,15 +157,7 @@ export default function MentorDashboard({ user }: MentorDashboardProps) {
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
-                    onClick={async () => {
-                      const { data } = await supabase.storage
-                        .from("assignments")
-                        .download(assignment.file_path);
-                      if (data) {
-                        const url = URL.createObjectURL(data);
-                        window.open(url, "_blank");
-                      }
-                    }}
+                    onClick={() => openPdf(assignment.file_path)}
                   >
                     View PDF
                   </Button>
@@ -196,6 +200,22 @@ export default function MentorDashboard({ user }: MentorDashboardProps) {
             <Button onClick={handleReview} disabled={loading} className="w-full">
               {loading ? "Submitting..." : "Submit Review"}
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={!!pdfUrl} onOpenChange={() => setPdfUrl(null)}>
+        <DialogContent className="max-w-5xl">
+          <DialogHeader>
+            <DialogTitle>View PDF</DialogTitle>
+          </DialogHeader>
+          <div className="h-[80vh]">
+            {pdfUrl ? (
+              <iframe
+                src={pdfUrl}
+                className="h-full w-full rounded-md border border-border"
+                title="Assignment PDF"
+              />
+            ) : null}
           </div>
         </DialogContent>
       </Dialog>
