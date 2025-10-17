@@ -142,7 +142,23 @@ export default function MentorDashboard({ user }: MentorDashboardProps) {
                   <FileText className="h-4 w-4" />
                   <span>Submitted on {new Date(assignment.created_at).toLocaleDateString()}</span>
                 </div>
-                <Button onClick={() => setSelectedAssignment(assignment)}>Review</Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={async () => {
+                      const { data } = await supabase.storage
+                        .from("assignments")
+                        .download(assignment.file_path);
+                      if (data) {
+                        const url = URL.createObjectURL(data);
+                        window.open(url, "_blank");
+                      }
+                    }}
+                  >
+                    View PDF
+                  </Button>
+                  <Button onClick={() => setSelectedAssignment(assignment)}>Review</Button>
+                </div>
               </div>
             </CardContent>
           </Card>
