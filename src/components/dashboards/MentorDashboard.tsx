@@ -10,6 +10,7 @@ import { Badge } from "@/components/Badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { FileText, User as UserIcon } from "lucide-react";
+import PdfViewer from "@/components/PdfViewer";
 
 interface Assignment {
   id: string;
@@ -33,6 +34,7 @@ export default function MentorDashboard({ user }: MentorDashboardProps) {
   const [comments, setComments] = useState("");
   const [loading, setLoading] = useState(false);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
 
   useEffect(() => {
     fetchAssignments();
@@ -83,9 +85,9 @@ export default function MentorDashboard({ user }: MentorDashboardProps) {
       toast.error(error?.message || 'Unable to open file');
       return;
     }
+    // Ensure correct MIME type
     const blob = data.type === 'application/pdf' ? data : new Blob([data], { type: 'application/pdf' });
-    const url = URL.createObjectURL(blob);
-    setPdfUrl(url);
+    setPdfBlob(blob);
   };
 
   const handleReview = async () => {
@@ -205,30 +207,18 @@ export default function MentorDashboard({ user }: MentorDashboardProps) {
           </div>
         </DialogContent>
       </Dialog>
-      <Dialog open={!!pdfUrl} onOpenChange={(open) => {
-        if (!open && pdfUrl?.startsWith('blob:')) {
-          URL.revokeObjectURL(pdfUrl);
+      <Dialog open={!!pdfBlob} onOpenChange={(open) => {
+        if (!open) {
+          setPdfBlob(null);
         }
-        if (!open) setPdfUrl(null);
       }}>
         <DialogContent className="max-w-5xl">
           <DialogHeader>
             <DialogTitle>View PDF</DialogTitle>
           </DialogHeader>
-          <div className="h-[80vh]">
-            {pdfUrl ? (
-              <object
-                data={pdfUrl}
-                type="application/pdf"
-                className="h-full w-full rounded-md border border-border"
-                aria-label="Assignment PDF"
-              >
-                <div className="p-4 text-sm text-muted-foreground">
-                  Unable to display PDF inline. <a className="underline" href={pdfUrl} download>Download</a> instead.
-                </div>
-              </object>
-            ) : null}
-          </div>
+          {pdfBlob ? (
+            <PdfViewer blob={pdfBlob} />
+          ) : null}
         </DialogContent>
       </Dialog>
     </div>
