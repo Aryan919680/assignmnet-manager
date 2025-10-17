@@ -83,7 +83,8 @@ export default function MentorDashboard({ user }: MentorDashboardProps) {
       toast.error(error?.message || 'Unable to open file');
       return;
     }
-    const url = URL.createObjectURL(data);
+    const blob = data.type === 'application/pdf' ? data : new Blob([data], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
     setPdfUrl(url);
   };
 
@@ -216,11 +217,16 @@ export default function MentorDashboard({ user }: MentorDashboardProps) {
           </DialogHeader>
           <div className="h-[80vh]">
             {pdfUrl ? (
-              <iframe
-                src={pdfUrl}
+              <object
+                data={pdfUrl}
+                type="application/pdf"
                 className="h-full w-full rounded-md border border-border"
-                title="Assignment PDF"
-              />
+                aria-label="Assignment PDF"
+              >
+                <div className="p-4 text-sm text-muted-foreground">
+                  Unable to display PDF inline. <a className="underline" href={pdfUrl} download>Download</a> instead.
+                </div>
+              </object>
             ) : null}
           </div>
         </DialogContent>
