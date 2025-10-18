@@ -49,7 +49,7 @@ export default function HODDashboard({ user }: HODDashboardProps) {
         profiles:student_id (full_name, email),
         reviews (marks, comments)
       `)
-      .eq("status", "mentor_review")
+      .eq("status", "reviewed")
       .order("created_at", { ascending: false });
 
     if (data) setAssignments(data as any);

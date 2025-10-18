@@ -109,7 +109,7 @@ export default function MentorDashboard({ user }: MentorDashboardProps) {
 
       const { error: updateError } = await supabase
         .from("assignments")
-        .update({ status: "mentor_review" })
+        .update({ status: "reviewed" })
         .eq("id", selectedAssignment.id);
 
       if (updateError) throw updateError;
