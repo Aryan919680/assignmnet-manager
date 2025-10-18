@@ -75,15 +75,16 @@ export default function MentorDashboard({ user }: MentorDashboardProps) {
     setAssignments(enriched as any);
   };
 
-  // Use Supabase getPublicUrl for iframe rendering
+  // Download PDF from private storage bucket
   const openPdf = async (path: string) => {
-    const { data } = supabase.storage.from("assignments").getPublicUrl(path);
-    if (!data?.publicUrl) {
-      toast.error("Unable to fetch file URL");
+    const { data, error } = await supabase.storage.from("assignments").download(path);
+    if (error || !data) {
+      toast.error("Unable to fetch PDF file");
+      console.error("PDF download error:", error);
       return;
     }
-    setPdfUrl(data.publicUrl);
-    console.log("PDF URL:", data.publicUrl);
+    const url = URL.createObjectURL(data);
+    setPdfUrl(url);
   };
 
   const handleReview = async () => {
