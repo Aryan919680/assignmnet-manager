@@ -8,7 +8,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/Badge";
 import { toast } from "sonner";
-import { Upload, FileText, Clock, CheckCircle, XCircle } from "lucide-react";
+import { Upload, FileText, Clock, CheckCircle, XCircle, AlertCircle } from "lucide-react";
+
+interface Review {
+  comments: string;
+  action: string;
+  reviewer_role: string;
+}
 
 interface Assignment {
   id: string;
@@ -17,6 +23,7 @@ interface Assignment {
   status: string;
   created_at: string;
   file_path: string;
+  reviews?: Review[];
 }
 
 interface StudentDashboardProps {
@@ -38,11 +45,14 @@ export default function StudentDashboard({ user }: StudentDashboardProps) {
   const fetchAssignments = async () => {
     const { data } = await supabase
       .from("assignments")
-      .select("*")
+      .select(`
+        *,
+        reviews (comments, action, reviewer_role)
+      `)
       .eq("student_id", user.id)
       .order("created_at", { ascending: false });
 
-    if (data) setAssignments(data);
+    if (data) setAssignments(data as any);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -180,6 +190,23 @@ export default function StudentDashboard({ user }: StudentDashboardProps) {
                   <div>
                     <CardTitle className="text-lg">{assignment.title}</CardTitle>
                     <CardDescription className="mt-1">{assignment.description}</CardDescription>
+                    {assignment.status === "rejected" && assignment.reviews && assignment.reviews.length > 0 && (
+                      <div className="mt-3 rounded-lg border border-destructive/50 bg-destructive/10 p-3">
+                        <div className="flex items-start gap-2">
+                          <AlertCircle className="h-4 w-4 text-destructive mt-0.5" />
+                          <div>
+                            <p className="text-sm font-semibold text-destructive">Rejection Feedback</p>
+                            {assignment.reviews
+                              .filter((r) => r.action === "rejected")
+                              .map((review, idx) => (
+                                <p key={idx} className="mt-1 text-sm text-muted-foreground">
+                                  {review.reviewer_role === "hod" ? "HOD" : "Mentor"}: {review.comments}
+                                </p>
+                              ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
                 {getStatusBadge(assignment.status)}

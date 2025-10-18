@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/Badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { FileText, User as UserIcon, CheckCircle, XCircle } from "lucide-react";
 
@@ -179,6 +179,7 @@ export default function HODDashboard({ user }: HODDashboardProps) {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Final Review</DialogTitle>
+            <DialogDescription className="sr-only">Approve or reject the assignment reviewed by mentor.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
