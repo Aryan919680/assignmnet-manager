@@ -1,11 +1,8 @@
 import { useEffect, useRef } from "react";
 import * as pdfjsLib from "pdfjs-dist";
-// Vite: import worker as URL for pdf.js
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-import pdfWorker from "pdfjs-dist/build/pdf.worker.min.js?url";
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
+// Use CDN for worker to avoid build issues
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 interface PdfViewerProps {
   blob: Blob;
