@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/Badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { FileText, User as UserIcon } from "lucide-react";
 
@@ -174,6 +174,7 @@ export default function MentorDashboard({ user }: MentorDashboardProps) {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Review Assignment</DialogTitle>
+            <DialogDescription className="sr-only">Provide marks and comments for the assignment.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
@@ -210,6 +211,7 @@ export default function MentorDashboard({ user }: MentorDashboardProps) {
         <DialogContent className="max-w-5xl">
           <DialogHeader>
             <DialogTitle>View PDF</DialogTitle>
+            <DialogDescription className="sr-only">Inline preview of the submitted PDF document.</DialogDescription>
           </DialogHeader>
           {pdfUrl && (
             <iframe

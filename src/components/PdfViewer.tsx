@@ -1,23 +1,16 @@
-import { Document, Page, pdfjs } from 'react-pdf';
-import 'react-pdf/dist/Page/AnnotationLayer.css';
-import 'react-pdf/dist/Page/TextLayer.css';
+import React from "react";
 
-// Use pdfjs-dist from node_modules directly
-pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.min.js',
-  import.meta.url
-).toString();
+type PdfViewerProps = {
+  pdfUrl: string;
+};
 
-export default function PdfViewer ({ pdfUrl }) {
+export default function PdfViewer({ pdfUrl }: PdfViewerProps) {
   return (
     <iframe
       src={pdfUrl}
       className="w-full h-[90vh]"
       title="PDF Viewer"
-      style={{ border: 'none' }}
+      style={{ border: "none" }}
     />
   );
 }
-
-
-// export default PdfViewer;
