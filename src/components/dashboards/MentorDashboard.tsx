@@ -10,7 +10,6 @@ import { Badge } from "@/components/Badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { FileText, User as UserIcon } from "lucide-react";
-import PdfViewer from "@/components/PdfViewer";
 
 interface Assignment {
   id: string;
@@ -34,7 +33,6 @@ export default function MentorDashboard({ user }: MentorDashboardProps) {
   const [comments, setComments] = useState("");
   const [loading, setLoading] = useState(false);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
-  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
 
   useEffect(() => {
     fetchAssignments();
@@ -77,17 +75,15 @@ export default function MentorDashboard({ user }: MentorDashboardProps) {
     setAssignments(enriched as any);
   };
 
+  // Use Supabase getPublicUrl for iframe rendering
   const openPdf = async (path: string) => {
-    const { data, error } = await supabase.storage
-      .from('assignments')
-      .download(path);
-    if (error || !data) {
-      toast.error(error?.message || 'Unable to open file');
+    const { data } = supabase.storage.from("assignments").getPublicUrl(path);
+    if (!data?.publicUrl) {
+      toast.error("Unable to fetch file URL");
       return;
     }
-    // Ensure correct MIME type
-    const blob = data.type === 'application/pdf' ? data : new Blob([data], { type: 'application/pdf' });
-    setPdfBlob(blob);
+    setPdfUrl(data.publicUrl);
+    console.log("PDF URL:", data.publicUrl);
   };
 
   const handleReview = async () => {
@@ -146,7 +142,10 @@ export default function MentorDashboard({ user }: MentorDashboardProps) {
                   <CardDescription className="mt-1">{assignment.description}</CardDescription>
                   <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
                     <UserIcon className="h-4 w-4" />
-                    <span>{assignment.profiles?.full_name || "Unknown"} ({assignment.profiles?.email || "N/A"})</span>
+                    <span>
+                      {assignment.profiles?.full_name || "Unknown"} (
+                      {assignment.profiles?.email || "N/A"})
+                    </span>
                   </div>
                 </div>
                 <Badge variant="warning">Needs Review</Badge>
@@ -159,10 +158,7 @@ export default function MentorDashboard({ user }: MentorDashboardProps) {
                   <span>Submitted on {new Date(assignment.created_at).toLocaleDateString()}</span>
                 </div>
                 <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => openPdf(assignment.file_path)}
-                  >
+                  <Button variant="outline" onClick={() => openPdf(assignment.file_path)}>
                     View PDF
                   </Button>
                   <Button onClick={() => setSelectedAssignment(assignment)}>Review</Button>
@@ -173,6 +169,7 @@ export default function MentorDashboard({ user }: MentorDashboardProps) {
         ))}
       </div>
 
+      {/* Review Dialog */}
       <Dialog open={!!selectedAssignment} onOpenChange={() => setSelectedAssignment(null)}>
         <DialogContent>
           <DialogHeader>
@@ -207,18 +204,21 @@ export default function MentorDashboard({ user }: MentorDashboardProps) {
           </div>
         </DialogContent>
       </Dialog>
-      <Dialog open={!!pdfBlob} onOpenChange={(open) => {
-        if (!open) {
-          setPdfBlob(null);
-        }
-      }}>
+
+      {/* PDF Viewer Dialog (iframe) */}
+      <Dialog open={!!pdfUrl} onOpenChange={(open) => !open && setPdfUrl(null)}>
         <DialogContent className="max-w-5xl">
           <DialogHeader>
             <DialogTitle>View PDF</DialogTitle>
           </DialogHeader>
-          {pdfBlob ? (
-            <PdfViewer blob={pdfBlob} />
-          ) : null}
+          {pdfUrl && (
+            <iframe
+              src={pdfUrl}
+              className="w-full h-[80vh]"
+              title="PDF Viewer"
+              style={{ border: "none" }}
+            />
+          )}
         </DialogContent>
       </Dialog>
     </div>
