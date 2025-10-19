@@ -42,17 +42,53 @@ export default function HODDashboard({ user }: HODDashboardProps) {
   }, []);
 
   const fetchAssignments = async () => {
-    const { data } = await supabase
+    const { data: assignmentRows, error: aErr } = await supabase
       .from("assignments")
-      .select(`
-        *,
-        profiles:student_id (full_name, email),
-        reviews (marks, comments)
-      `)
+      .select("*")
       .eq("status", "reviewed")
       .order("created_at", { ascending: false });
 
-    if (data) setAssignments(data as any);
+    if (aErr) {
+      toast.error(aErr.message);
+      return;
+    }
+
+    if (!assignmentRows || assignmentRows.length === 0) {
+      setAssignments([]);
+      return;
+    }
+
+    const studentIds = Array.from(new Set(assignmentRows.map((a: any) => a.student_id)));
+    const { data: profileRows, error: pErr } = await supabase
+      .from("profiles")
+      .select("id, full_name, email")
+      .in("id", studentIds);
+
+    if (pErr || !profileRows) {
+      setAssignments(assignmentRows as any);
+      return;
+    }
+
+    const assignmentIds = assignmentRows.map((a: any) => a.id);
+    const { data: reviewRows, error: rErr } = await supabase
+      .from("reviews")
+      .select("assignment_id, marks, comments")
+      .in("assignment_id", assignmentIds);
+
+    if (rErr) {
+      toast.error(rErr.message);
+    }
+
+    const profileMap = new Map(profileRows.map((p: any) => [p.id, p]));
+    const reviewMap = new Map((reviewRows || []).map((r: any) => [r.assignment_id, r]));
+
+    const enriched = (assignmentRows as any[]).map((a) => ({
+      ...a,
+      profiles: profileMap.get(a.student_id) || { full_name: "Unknown", email: "N/A" },
+      reviews: reviewMap.has(a.id) ? [reviewMap.get(a.id)] : [],
+    }));
+
+    setAssignments(enriched as any);
   };
 
   const handleApprove = async () => {
