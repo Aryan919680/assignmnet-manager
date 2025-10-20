@@ -169,47 +169,63 @@ export default function HODDashboard({ user }: HODDashboardProps) {
         <p className="text-muted-foreground">Approve or reject reviewed assignments</p>
       </div>
 
-      <div className="grid gap-4">
-        {assignments.map((assignment) => (
-          <Card key={assignment.id} className="border-border/50 transition-colors hover:border-primary/30">
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div>
-                  <CardTitle className="text-lg">{assignment.title}</CardTitle>
-                  <CardDescription className="mt-1">{assignment.description}</CardDescription>
-                  <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
-                    <UserIcon className="h-4 w-4" />
-                    <span>{assignment.profiles.full_name} ({assignment.profiles.email})</span>
-                  </div>
-                  {assignment.reviews[0] && (
-                    <div className="mt-3 rounded-lg bg-muted/50 p-3">
-                      <p className="text-sm font-semibold">Mentor Review</p>
-                      <p className="text-sm text-muted-foreground">
-                        Marks: {assignment.reviews[0].marks}/100
-                      </p>
-                      {assignment.reviews[0].comments && (
-                        <p className="mt-1 text-sm text-muted-foreground">
-                          {assignment.reviews[0].comments}
-                        </p>
-                      )}
+      {assignments.length === 0 ? (
+        <Card className="border-dashed">
+          <CardHeader>
+            <CardTitle className="text-xl">No reviewed assignments</CardTitle>
+            <CardDescription>
+              There are no assignments awaiting HOD decision yet. Once mentors mark submissions as reviewed, they’ll appear here.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-3">
+              <Button variant="secondary" onClick={fetchAssignments}>Refresh</Button>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid gap-4">
+          {assignments.map((assignment) => (
+            <Card key={assignment.id} className="border-border/50 transition-colors hover:border-primary/30">
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div>
+                    <CardTitle className="text-lg">{assignment.title}</CardTitle>
+                    <CardDescription className="mt-1">{assignment.description}</CardDescription>
+                    <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
+                      <UserIcon className="h-4 w-4" />
+                      <span>{assignment.profiles.full_name} ({assignment.profiles.email})</span>
                     </div>
-                  )}
+                    {assignment.reviews[0] && (
+                      <div className="mt-3 rounded-lg bg-muted/50 p-3">
+                        <p className="text-sm font-semibold">Mentor Review</p>
+                        <p className="text-sm text-muted-foreground">
+                          Marks: {assignment.reviews[0].marks}/100
+                        </p>
+                        {assignment.reviews[0].comments && (
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            {assignment.reviews[0].comments}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <Badge variant="warning">Awaiting Decision</Badge>
                 </div>
-                <Badge variant="warning">Awaiting Decision</Badge>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <FileText className="h-4 w-4" />
-                  <span>Submitted on {new Date(assignment.created_at).toLocaleDateString()}</span>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <FileText className="h-4 w-4" />
+                    <span>Submitted on {new Date(assignment.created_at).toLocaleDateString()}</span>
+                  </div>
+                  <Button onClick={() => setSelectedAssignment(assignment)}>Review</Button>
                 </div>
-                <Button onClick={() => setSelectedAssignment(assignment)}>Review</Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
       <Dialog open={!!selectedAssignment} onOpenChange={() => setSelectedAssignment(null)}>
         <DialogContent>
