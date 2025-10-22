@@ -68,3 +68,14 @@ USING (
     WHERE user_id = auth.uid() AND role = 'principal'
   )
 );
+
+CREATE POLICY "Mentors and admins can insert assignments"
+  ON assignments
+  FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    auth.uid() = student_id
+    OR public.has_role(auth.uid(), 'mentor')
+    OR public.has_role(auth.uid(), 'hod')
+    OR public.has_role(auth.uid(), 'principal')
+  );

@@ -45,7 +45,7 @@ export default function HODDashboard({ user }: HODDashboardProps) {
     const { data: assignmentRows, error: aErr } = await supabase
       .from("assignments")
       .select("*")
-      .eq("status", "reviewed")
+      .eq("status", "mentor_review")
       .order("created_at", { ascending: false });
 
     if (aErr) {

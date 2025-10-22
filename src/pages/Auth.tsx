@@ -49,16 +49,20 @@ export default function Auth() {
             data: {
               full_name: fullName,
             },
+            emailConfirm: false
           },
         });
 
         if (error) throw error;
 
         if (data.user) {
-          const { error: roleError } = await supabase.from("user_roles").insert({
-            user_id: data.user.id,
-            role: role,
-          });
+          const { error: roleError } = await supabase.rpc("insert_user_role", {
+  _user_id: data.user.id,
+  _role: role,
+});
+
+if (roleError) throw roleError;
+
 
           if (roleError) throw roleError;
 
