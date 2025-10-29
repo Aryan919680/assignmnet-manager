@@ -2,14 +2,24 @@ import { useState, useEffect } from "react";
 import { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/Badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { FileText, User as UserIcon } from "lucide-react";
+import MentorRubricAssessment from "@/components/MentorRubricAssessment"; // ✅ Import Rubric Form
 
 interface Assignment {
   id: string;
@@ -28,10 +38,8 @@ interface MentorDashboardProps {
 
 export default function MentorDashboard({ user }: MentorDashboardProps) {
   const [assignments, setAssignments] = useState<Assignment[]>([]);
-  const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
-  const [marks, setMarks] = useState("");
-  const [comments, setComments] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [selectedAssignment, setSelectedAssignment] =
+    useState<Assignment | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
 
   useEffect(() => {
@@ -55,7 +63,9 @@ export default function MentorDashboard({ user }: MentorDashboardProps) {
       return;
     }
 
-    const studentIds = Array.from(new Set(assignmentRows.map((a: any) => a.student_id)));
+    const studentIds = Array.from(
+      new Set(assignmentRows.map((a: any) => a.student_id))
+    );
     const { data: profileRows, error: pErr } = await supabase
       .from("profiles")
       .select("id, full_name, email")
@@ -77,7 +87,9 @@ export default function MentorDashboard({ user }: MentorDashboardProps) {
 
   // Download PDF from private storage bucket
   const openPdf = async (path: string) => {
-    const { data, error } = await supabase.storage.from("assignments").download(path);
+    const { data, error } = await supabase.storage
+      .from("assignments")
+      .download(path);
     if (error || !data) {
       toast.error("Unable to fetch PDF file");
       console.error("PDF download error:", error);
@@ -87,21 +99,16 @@ export default function MentorDashboard({ user }: MentorDashboardProps) {
     setPdfUrl(url);
   };
 
-  const handleReview = async () => {
-    if (!selectedAssignment || !marks) {
-      toast.error("Please enter marks");
-      return;
-    }
-
-    setLoading(true);
+  // ✅ Handle rubric form submission
+  const handleRubricSubmit = async (rubricData: any) => {
+    if (!selectedAssignment) return;
 
     try {
       const { error: reviewError } = await supabase.from("reviews").insert({
         assignment_id: selectedAssignment.id,
         reviewer_id: user.id,
         reviewer_role: "mentor",
-        marks: parseInt(marks),
-        comments,
+        rubric: rubricData, // store all rubric scores & comments as JSON
         action: "reviewed",
       });
 
@@ -114,15 +121,11 @@ export default function MentorDashboard({ user }: MentorDashboardProps) {
 
       if (updateError) throw updateError;
 
-      toast.success("Review submitted successfully!");
+      toast.success("Assessment submitted successfully!");
       setSelectedAssignment(null);
-      setMarks("");
-      setComments("");
       fetchAssignments();
     } catch (error: any) {
       toast.error(error.message);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -135,12 +138,17 @@ export default function MentorDashboard({ user }: MentorDashboardProps) {
 
       <div className="grid gap-4">
         {assignments.map((assignment) => (
-          <Card key={assignment.id} className="border-border/50 transition-colors hover:border-primary/30">
+          <Card
+            key={assignment.id}
+            className="border-border/50 transition-colors hover:border-primary/30"
+          >
             <CardHeader>
               <div className="flex items-start justify-between">
                 <div>
                   <CardTitle className="text-lg">{assignment.title}</CardTitle>
-                  <CardDescription className="mt-1">{assignment.description}</CardDescription>
+                  <CardDescription className="mt-1">
+                    {assignment.description}
+                  </CardDescription>
                   <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
                     <UserIcon className="h-4 w-4" />
                     <span>
@@ -156,13 +164,21 @@ export default function MentorDashboard({ user }: MentorDashboardProps) {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <FileText className="h-4 w-4" />
-                  <span>Submitted on {new Date(assignment.created_at).toLocaleDateString()}</span>
+                  <span>
+                    Submitted on{" "}
+                    {new Date(assignment.created_at).toLocaleDateString()}
+                  </span>
                 </div>
                 <div className="flex gap-2">
-                  <Button variant="outline" onClick={() => openPdf(assignment.file_path)}>
+                  <Button
+                    variant="outline"
+                    onClick={() => openPdf(assignment.file_path)}
+                  >
                     View PDF
                   </Button>
-                  <Button onClick={() => setSelectedAssignment(assignment)}>Review</Button>
+                  <Button onClick={() => setSelectedAssignment(assignment)}>
+                    Review
+                  </Button>
                 </div>
               </div>
             </CardContent>
@@ -170,49 +186,32 @@ export default function MentorDashboard({ user }: MentorDashboardProps) {
         ))}
       </div>
 
-      {/* Review Dialog */}
-      <Dialog open={!!selectedAssignment} onOpenChange={() => setSelectedAssignment(null)}>
-        <DialogContent>
+      {/* ✅ Rubric Assessment Dialog */}
+      <Dialog
+        open={!!selectedAssignment}
+        onOpenChange={() => setSelectedAssignment(null)}
+      >
+        <DialogContent className="max-w-5xl overflow-y-auto max-h-[90vh]">
           <DialogHeader>
-            <DialogTitle>Review Assignment</DialogTitle>
-            <DialogDescription className="sr-only">Provide marks and comments for the assignment.</DialogDescription>
+            <DialogTitle>
+              Review Assignment — {selectedAssignment?.title}
+            </DialogTitle>
+            <DialogDescription>
+              Complete the rubric assessment and submit.
+            </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="marks">Marks (out of 100)</Label>
-              <Input
-                id="marks"
-                type="number"
-                min="0"
-                max="100"
-                value={marks}
-                onChange={(e) => setMarks(e.target.value)}
-                placeholder="Enter marks"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="comments">Comments</Label>
-              <Textarea
-                id="comments"
-                value={comments}
-                onChange={(e) => setComments(e.target.value)}
-                placeholder="Add your feedback"
-                rows={4}
-              />
-            </div>
-            <Button onClick={handleReview} disabled={loading} className="w-full">
-              {loading ? "Submitting..." : "Submit Review"}
-            </Button>
-          </div>
+
+          <MentorRubricAssessment
+            onSubmit={(data: any) => handleRubricSubmit(data)}
+          />
         </DialogContent>
       </Dialog>
 
-      {/* PDF Viewer Dialog (iframe) */}
+      {/* PDF Viewer */}
       <Dialog open={!!pdfUrl} onOpenChange={(open) => !open && setPdfUrl(null)}>
         <DialogContent className="max-w-5xl">
           <DialogHeader>
             <DialogTitle>View PDF</DialogTitle>
-            <DialogDescription className="sr-only">Inline preview of the submitted PDF document.</DialogDescription>
           </DialogHeader>
           {pdfUrl && (
             <iframe
