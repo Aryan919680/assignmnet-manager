@@ -15,7 +15,7 @@ const MentorRubricAssessment: React.FC<MentorRubricAssessmentProps> = ({
   onSubmit,
 }) => {
   const [formData, setFormData] = useState(
-    criteriaList.map(() => ({ score: "", comment: "" }))
+    criteriaList.map((name) => ({ name, score: "", comment: "" }))
   );
   const [overallComment, setOverallComment] = useState("");
 
@@ -44,13 +44,14 @@ const MentorRubricAssessment: React.FC<MentorRubricAssessmentProps> = ({
       onSubmit={handleSubmit}
       className="border border-gray-300 rounded-lg p-6"
     >
-      {criteriaList.map((criterion, index) => (
+      {formData.map((item, index) => (
         <div key={index} className="mb-6 pb-4 border-b border-gray-200">
-          <label className="block font-semibold mb-2">{criterion}</label>
+          <label className="block font-semibold mb-2">{item.name}</label>
+
           <select
             className="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 text-black"
             required
-            value={formData[index].score}
+            value={item.score}
             onChange={(e) => handleChange(index, "score", e.target.value)}
           >
             <option value="">Select score</option>
@@ -60,10 +61,11 @@ const MentorRubricAssessment: React.FC<MentorRubricAssessmentProps> = ({
             <option value="3">3 - Accomplished</option>
             <option value="4">4 - Exemplary</option>
           </select>
+
           <textarea
             className="w-full border border-gray-300 rounded-md p-2 mt-3 text-sm resize-y focus:ring-2 focus:ring-blue-500 text-black"
-            placeholder={`Enter comments for ${criterion}`}
-            value={formData[index].comment}
+            placeholder={`Enter comments for ${item.name}`}
+            value={item.comment}
             onChange={(e) => handleChange(index, "comment", e.target.value)}
           ></textarea>
         </div>

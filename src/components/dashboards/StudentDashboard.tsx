@@ -25,6 +25,8 @@ import {
   LifeBuoy,
 } from "lucide-react";
 import Dashboard from "../student/Dashboard";
+import SubmitAssignment from "../student/SubmitAssignment";
+import Feedback from "../student/Feedback";
 
 interface Review {
   comments: string;
@@ -332,6 +334,12 @@ export default function StudentDashboard({ user }: StudentDashboardProps) {
 
 {
   activeSection === "Dashboard" && <Dashboard />
+}
+{
+  activeSection === "Submit / Resubmit"  && <SubmitAssignment user={user} fetchAssignments={fetchAssignments}/>
+}
+{
+  activeSection === "Feedback" && <Feedback />
 }
           {/* Future sections can go here */}
           {/* {activeSection !== "Dashboard" && (
