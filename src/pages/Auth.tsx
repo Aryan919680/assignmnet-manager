@@ -49,7 +49,6 @@ export default function Auth() {
             data: {
               full_name: fullName,
             },
-            emailConfirm: false
           },
         });
 

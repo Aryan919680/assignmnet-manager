@@ -49,15 +49,17 @@ export default function Dashboard() {
   }
 
   const renderDashboard = () => {
+    if (!user) return null;
+    
     switch (role) {
       case "student":
-        return <StudentDashboard user={user!} />;
+        return <StudentDashboard user={user} />;
       case "mentor":
-        return <MentorDashboard user={user!} />;
+        return <MentorDashboard user={user} />;
       case "hod":
-        return <HODDashboard user={user!} />;
+        return <HODDashboard user={user} />;
       case "principal":
-        return <PrincipalDashboard user={user!} />;
+        return <PrincipalDashboard />;
       default:
         return <div>No role assigned</div>;
     }
