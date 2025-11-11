@@ -2,13 +2,7 @@ import { useState, useEffect } from "react";
 import { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/Badge";
 import {
   Dialog,
@@ -18,8 +12,16 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { FileText, User as UserIcon } from "lucide-react";
-import MentorRubricAssessment from "@/components/MentorRubricAssessment"; // ✅ Import Rubric Form
+import {
+  FileText,
+  User as UserIcon,
+  LayoutDashboard,
+  FileUp,
+  Menu,
+  Users,
+} from "lucide-react";
+import CreateAssignment from "@/components/mentor/CreateAssignment";
+import MentorRubricAssessment from "@/components/MentorRubricAssessment";
 
 interface Assignment {
   id: string;
@@ -41,10 +43,12 @@ export default function MentorDashboard({ user }: MentorDashboardProps) {
   const [selectedAssignment, setSelectedAssignment] =
     useState<Assignment | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState("Dashboard");
 
   useEffect(() => {
-    fetchAssignments();
-  }, []);
+    if (activeSection === "Dashboard") fetchAssignments();
+  }, [activeSection]);
 
   const fetchAssignments = async () => {
     const { data: assignmentRows, error: aErr } = await supabase
@@ -58,7 +62,7 @@ export default function MentorDashboard({ user }: MentorDashboardProps) {
       return;
     }
 
-    if (!assignmentRows || assignmentRows.length === 0) {
+    if (!assignmentRows?.length) {
       setAssignments([]);
       return;
     }
@@ -66,6 +70,7 @@ export default function MentorDashboard({ user }: MentorDashboardProps) {
     const studentIds = Array.from(
       new Set(assignmentRows.map((a: any) => a.student_id))
     );
+
     const { data: profileRows, error: pErr } = await supabase
       .from("profiles")
       .select("id, full_name, email")
@@ -85,21 +90,18 @@ export default function MentorDashboard({ user }: MentorDashboardProps) {
     setAssignments(enriched as any);
   };
 
-  // Download PDF from private storage bucket
   const openPdf = async (path: string) => {
     const { data, error } = await supabase.storage
       .from("assignments")
       .download(path);
     if (error || !data) {
       toast.error("Unable to fetch PDF file");
-      console.error("PDF download error:", error);
       return;
     }
     const url = URL.createObjectURL(data);
     setPdfUrl(url);
   };
 
-  // ✅ Handle rubric form submission
   const handleRubricSubmit = async (rubricData: any) => {
     if (!selectedAssignment) return;
 
@@ -108,7 +110,7 @@ export default function MentorDashboard({ user }: MentorDashboardProps) {
         assignment_id: selectedAssignment.id,
         reviewer_id: user.id,
         reviewer_role: "mentor",
-        rubric: rubricData, // store all rubric scores & comments as JSON
+        rubric: rubricData,
         action: "reviewed",
       });
 
@@ -129,81 +131,127 @@ export default function MentorDashboard({ user }: MentorDashboardProps) {
     }
   };
 
+  const sidebarItems = [
+    { name: "Dashboard", icon: LayoutDashboard },
+    { name: "Create Assignment", icon: FileUp },
+    { name: "Manage Students", icon: Users },
+  ];
+
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h2 className="text-3xl font-bold">Mentor Dashboard</h2>
-        <p className="text-muted-foreground">Review student assignments</p>
-      </div>
-
-      <div className="grid gap-4">
-        {assignments.map((assignment) => (
-          <Card
-            key={assignment.id}
-            className="border-border/50 transition-colors hover:border-primary/30"
-          >
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div>
-                  <CardTitle className="text-lg">{assignment.title}</CardTitle>
-                  <CardDescription className="mt-1">
-                    {assignment.description}
-                  </CardDescription>
-                  <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
-                    <UserIcon className="h-4 w-4" />
-                    <span>
-                      {assignment.profiles?.full_name || "Unknown"} (
-                      {assignment.profiles?.email || "N/A"})
-                    </span>
-                  </div>
-                </div>
-                <Badge variant="warning">Needs Review</Badge>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <FileText className="h-4 w-4" />
-                  <span>
-                    Submitted on{" "}
-                    {new Date(assignment.created_at).toLocaleDateString()}
-                  </span>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => openPdf(assignment.file_path)}
-                  >
-                    View PDF
-                  </Button>
-                  <Button onClick={() => setSelectedAssignment(assignment)}>
-                    Review
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* ✅ Rubric Assessment Dialog */}
-      <Dialog
-        open={!!selectedAssignment}
-        onOpenChange={() => setSelectedAssignment(null)}
+    <div className="flex min-h-screen bg-muted/10">
+      {/* Sidebar */}
+      <div
+        className={`fixed inset-y-0 left-0 z-40 w-64 transform border-r border-border transition-transform duration-200 ease-in-out lg:static lg:translate-x-0 ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
       >
+        <div className="flex h-16 items-center justify-center border-b border-border font-bold text-xl text-primary">
+          Mentor Portal
+        </div>
+        <nav className="p-4 space-y-2">
+          {sidebarItems.map(({ name, icon: Icon }) => (
+            <button
+              key={name}
+              onClick={() => {
+                setActiveSection(name);
+                setSidebarOpen(false);
+              }}
+              className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                activeSection === name
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+              }`}
+            >
+              <Icon className="h-4 w-4" />
+              {name}
+            </button>
+          ))}
+        </nav>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 lg:ml-0">
+        <div className="sticky top-0 z-30 flex items-center justify-between border-b bg-white px-4 py-3 shadow-sm lg:hidden">
+          <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(!sidebarOpen)}>
+            <Menu className="h-5 w-5" />
+          </Button>
+          <h1 className="text-lg font-semibold">{activeSection}</h1>
+        </div>
+
+        <div className="p-6">
+          {activeSection === "Dashboard" && (
+            <>
+              <h2 className="text-3xl font-bold mb-6">Mentor Dashboard</h2>
+              <div className="grid gap-4">
+                {assignments.map((assignment) => (
+                  <Card
+                    key={assignment.id}
+                    className="border-border/50 transition-colors hover:border-primary/30"
+                  >
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <CardTitle className="text-lg">{assignment.title}</CardTitle>
+                          <CardDescription className="mt-1">
+                            {assignment.description}
+                          </CardDescription>
+                          <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
+                            <UserIcon className="h-4 w-4" />
+                            <span>
+                              {assignment.profiles?.full_name || "Unknown"} (
+                              {assignment.profiles?.email || "N/A"})
+                            </span>
+                          </div>
+                        </div>
+                        <Badge variant="warning">Needs Review</Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <FileText className="h-4 w-4" />
+                          <span>
+                            Submitted on{" "}
+                            {new Date(assignment.created_at).toLocaleDateString()}
+                          </span>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            onClick={() => openPdf(assignment.file_path)}
+                          >
+                            View PDF
+                          </Button>
+                          <Button onClick={() => setSelectedAssignment(assignment)}>
+                            Review
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </>
+          )}
+
+          {activeSection === "Create Assignment" && <CreateAssignment />}
+          {activeSection === "Manage Students" && (
+            <div className="text-muted-foreground py-12 text-center">
+              Coming soon: Manage Students
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Rubric Dialog */}
+      <Dialog open={!!selectedAssignment} onOpenChange={() => setSelectedAssignment(null)}>
         <DialogContent className="max-w-5xl overflow-y-auto max-h-[90vh]">
           <DialogHeader>
-            <DialogTitle>
-              Review Assignment — {selectedAssignment?.title}
-            </DialogTitle>
-            <DialogDescription>
-              Complete the rubric assessment and submit.
-            </DialogDescription>
+            <DialogTitle>Review Assignment — {selectedAssignment?.title}</DialogTitle>
+            <DialogDescription>Complete the rubric assessment and submit.</DialogDescription>
           </DialogHeader>
 
-          <MentorRubricAssessment
-            onSubmit={(data: any) => handleRubricSubmit(data)}
-          />
+          <MentorRubricAssessment onSubmit={handleRubricSubmit} />
         </DialogContent>
       </Dialog>
 
