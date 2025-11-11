@@ -27,6 +27,9 @@ import {
 import Dashboard from "../student/Dashboard";
 import SubmitAssignment from "../student/SubmitAssignment";
 import Feedback from "../student/Feedback";
+import Portfolio from "../student/Portfolio";
+import AICompanion from "../student/AICompanion";
+import Support from "../student/Support";
 
 interface Review {
   comments: string;
@@ -338,15 +341,10 @@ export default function StudentDashboard({ user }: StudentDashboardProps) {
 {
   activeSection === "Submit / Resubmit"  && <SubmitAssignment user={user} fetchAssignments={fetchAssignments}/>
 }
-{
-  activeSection === "Feedback" && <Feedback />
-}
-          {/* Future sections can go here */}
-          {/* {activeSection !== "Dashboard" && (
-            <div className="text-muted-foreground text-center py-12">
-              <p>Coming soon: {activeSection}</p>
-            </div>
-          )} */}
+{activeSection === "Feedback" && <Feedback />}
+          {activeSection === "Portfolio" && <Portfolio />}
+          {activeSection === "AI Companion" && <AICompanion />}
+          {activeSection === "Support" && <Support />}
         </div>
       </div>
     </div>
