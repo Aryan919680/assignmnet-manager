@@ -8,17 +8,25 @@ export default function FeedbackRubric() {
 
   useEffect(() => {
     const fetchFeedback = async () => {
-      const { data, error } = await supabase
-        .from('reviews')
-        .select('*')
-        .eq('reviewer_id', (await supabase.auth.getUser()).data.user?.id);
+     const { data, error } = await supabase.rpc('get_reviews_with_mentor');
 
-      if (error) {
-        console.error('Error fetching reviews', error);
-        return;
-      }
+  if (error) {
+    console.error('RPC error', error);
+    return;
+  }
 
-      setFeedbackData(data || []);
+  // data is an array of rows returned by the function
+  const formatted = data.map((row: any) => ({
+    id: row.review_id,
+    title: row.assignment?.title,
+    score: row.marks,
+    mentor: row.mentor?.meta?.name || row.mentor?.email || null,
+    why: row.rubric?.reason || "Feedback not provided",
+    rubric: row.rubric?.criteria || [],
+    grade: row.assignment?.grade || "-",
+  }));
+
+      setFeedbackData(formatted || []);
     };
 
     fetchFeedback();

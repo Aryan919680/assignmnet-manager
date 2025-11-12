@@ -176,9 +176,15 @@ export default function MentorDashboard({ user }: MentorDashboardProps) {
                   >
                     View PDF
                   </Button>
-                  <Button onClick={() => setSelectedAssignment(assignment)}>
-                    Review
-                  </Button>
+                 <Button
+  onClick={() => {
+    setSelectedAssignment(assignment);
+    openPdf(assignment.file_path);
+  }}
+>
+  Review
+</Button>
+
                 </div>
               </div>
             </CardContent>
@@ -187,7 +193,7 @@ export default function MentorDashboard({ user }: MentorDashboardProps) {
       </div>
 
       {/* ✅ Rubric Assessment Dialog */}
-      <Dialog
+      {/* <Dialog
         open={!!selectedAssignment}
         onOpenChange={() => setSelectedAssignment(null)}
       >
@@ -205,24 +211,47 @@ export default function MentorDashboard({ user }: MentorDashboardProps) {
             onSubmit={(data: any) => handleRubricSubmit(data)}
           />
         </DialogContent>
-      </Dialog>
+      </Dialog> */}
 
       {/* PDF Viewer */}
-      <Dialog open={!!pdfUrl} onOpenChange={(open) => !open && setPdfUrl(null)}>
-        <DialogContent className="max-w-5xl">
-          <DialogHeader>
-            <DialogTitle>View PDF</DialogTitle>
-          </DialogHeader>
-          {pdfUrl && (
-            <iframe
-              src={pdfUrl}
-              className="w-full h-[80vh]"
-              title="PDF Viewer"
-              style={{ border: "none" }}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
+      <Dialog
+  open={!!selectedAssignment}
+  onOpenChange={() => setSelectedAssignment(null)}
+>
+  <DialogContent className="max-w-[95vw] w-[95vw] h-[90vh] p-0">
+    <div className="flex h-[650px]">
+      {/* PDF Viewer */}
+      <div className="w-1/2 border-r p-2">
+        {selectedAssignment?.file_path ? (
+          <iframe
+            src={pdfUrl || ""}
+            className="w-full h-full rounded"
+            style={{ border: "none" }}
+          />
+        ) : (
+          <div className="flex items-center justify-center h-full text-muted-foreground">
+            No PDF available
+          </div>
+        )}
+      </div>
+
+      {/* Rubric Form */}
+      <div className="w-1/2 overflow-y-auto p-4">
+        <DialogHeader>
+          <DialogTitle>Review Assignment — {selectedAssignment?.title}</DialogTitle>
+          <DialogDescription>
+            View PDF on left and fill rubric here.
+          </DialogDescription>
+        </DialogHeader>
+
+        <MentorRubricAssessment
+          onSubmit={(data: any) => handleRubricSubmit(data)}
+        />
+      </div>
+    </div>
+  </DialogContent>
+</Dialog>
+
     </div>
   );
 }
