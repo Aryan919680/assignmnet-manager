@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -12,32 +12,77 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  Select,
+  SelectTrigger,
+  SelectContent,
+  SelectItem,
+  SelectValue,
+} from "@/components/ui/select";
 
 const CreateAssignment: React.FC = () => {
   const [title, setTitle] = useState("");
-  const [classSection, setClassSection] = useState("");
+  const [classId, setClassId] = useState<string>("");
+  const [classes, setClasses] = useState<any[]>([]);
   const [subject, setSubject] = useState("");
   const [instructions, setInstructions] = useState("");
   const [deadline, setDeadline] = useState("");
   const [allowLate, setAllowLate] = useState(false);
-  const [rubric, setRubric] = useState("default");
 
-  const handlePublish = () => {
-    if (!title || !classSection || !subject || !instructions || !deadline) {
+  // Load classes from DB
+  useEffect(() => {
+    const loadClasses = async () => {
+      const { data, error } = await supabase.from("classes").select("*");
+
+      if (error) {
+        toast.error("Error loading classes");
+        return;
+      }
+
+      setClasses(data);
+    };
+
+    loadClasses();
+  }, []);
+
+  const handlePublish = async () => {
+    if (!title || !classId || !subject || !instructions || !deadline) {
       toast.error("Please fill all required fields.");
       return;
     }
-    toast.success("Assignment published successfully!");
+
+    try {
+      const { error } = await supabase.from("assignments").insert([
+        {
+          title,
+          description: instructions,
+          class_id: classId, // ⭐ IMPORTANT
+          subject,
+          file_path: null,
+          student_id: null,
+          status: "pending",
+          deadline,
+          allow_late: allowLate,
+        },
+      ]);
+
+      if (error) throw error;
+
+      toast.success("Assignment created successfully!");
+      handleClear();
+    } catch (err: any) {
+      toast.error("Error creating assignment: " + err.message);
+    }
   };
 
   const handleClear = () => {
     setTitle("");
-    setClassSection("");
+    setClassId("");
     setSubject("");
     setInstructions("");
     setDeadline("");
     setAllowLate(false);
-    setRubric("default");
   };
 
   return (
@@ -47,113 +92,81 @@ const CreateAssignment: React.FC = () => {
           Create Assignment
         </h1>
         <p className="text-sm text-muted-foreground">
-          Set deadlines, instructions, and control late submissions.
+          Assign work to a specific class and set deadlines.
         </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Left - Form */}
-        <Card className="border-border shadow-sm">
+        {/* LEFT SIDE FORM */}
+        <Card>
           <CardHeader>
-            <CardTitle>New Assignment</CardTitle>
-            <CardDescription>
-              Fields marked <span className="text-destructive">*</span> are
-              required.
-            </CardDescription>
+            <CardTitle>Assignment Details</CardTitle>
           </CardHeader>
+
           <CardContent className="space-y-4">
+
             {/* Title */}
             <div className="space-y-1.5">
-              <Label>
-                Title <span className="text-destructive">*</span>
-              </Label>
+              <Label>Title *</Label>
               <Input
-                placeholder="e.g., Research Paper on Sustainability"
+                placeholder="e.g., Science Project Report"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
               />
             </div>
 
-            {/* Class & Subject */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label>
-                  Class / Section <span className="text-destructive">*</span>
-                </Label>
-                <select
-                  value={classSection}
-                  onChange={(e) => setClassSection(e.target.value)}
-                  className="w-full rounded-md border border-input bg-background p-2 text-sm"
-                >
-                  <option value="">Select...</option>
-                  <option value="10A">10A</option>
-                  <option value="10B">10B</option>
-                </select>
-              </div>
+            {/* Class Dropdown */}
+            <div className="space-y-1.5">
+              <Label>Class *</Label>
+              <Select value={classId} onValueChange={setClassId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a class" />
+                </SelectTrigger>
+                <SelectContent>
+                  {classes.map((cls) => (
+                    <SelectItem key={cls.id} value={cls.id}>
+                      {cls.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-              <div className="space-y-1.5">
-                <Label>
-                  Subject <span className="text-destructive">*</span>
-                </Label>
-                <select
-                  value={subject}
-                  onChange={(e) => setSubject(e.target.value)}
-                  className="w-full rounded-md border border-input bg-background p-2 text-sm"
-                >
-                  <option value="">Select...</option>
-                  <option value="Science">Science</option>
-                  <option value="Math">Math</option>
-                </select>
-              </div>
+            {/* Subject */}
+            <div className="space-y-1.5">
+              <Label>Subject *</Label>
+              <Input
+                placeholder="e.g., Mathematics"
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+              />
             </div>
 
             {/* Instructions */}
             <div className="space-y-1.5">
-              <Label>
-                Instructions / Brief <span className="text-destructive">*</span>
-              </Label>
+              <Label>Instructions *</Label>
               <Textarea
                 rows={4}
-                placeholder="Describe what students should deliver..."
+                placeholder="Describe what students need to submit..."
                 value={instructions}
                 onChange={(e) => setInstructions(e.target.value)}
               />
             </div>
 
-            {/* Deadline & Rubric */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label>
-                  Deadline (date & time)
-                  <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  type="datetime-local"
-                  value={deadline}
-                  onChange={(e) => setDeadline(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label>Rubric Template</Label>
-                <select
-                  value={rubric}
-                  onChange={(e) => setRubric(e.target.value)}
-                  className="w-full rounded-md border border-input bg-background p-2 text-sm"
-                >
-                  <option value="default">
-                    Default (Originality / Rigor / Format)
-                  </option>
-                  <option value="simple">Simple Rubric</option>
-                </select>
-              </div>
+            {/* Deadline */}
+            <div className="space-y-1.5">
+              <Label>Deadline *</Label>
+              <Input
+                type="datetime-local"
+                value={deadline}
+                onChange={(e) => setDeadline(e.target.value)}
+              />
             </div>
 
-            {/* Allow Late Submissions */}
+            {/* Allow Late */}
             <div className="flex items-center justify-between border-t pt-3">
-              <Label htmlFor="allowLate">Allow Late Submissions</Label>
+              <Label>Allow Late Submissions</Label>
               <Switch
-                id="allowLate"
                 checked={allowLate}
                 onCheckedChange={setAllowLate}
               />
@@ -164,27 +177,25 @@ const CreateAssignment: React.FC = () => {
               <Button variant="outline" onClick={handleClear}>
                 Clear
               </Button>
-              <Button variant="secondary">Preview</Button>
               <Button onClick={handlePublish}>Publish</Button>
             </div>
           </CardContent>
         </Card>
 
-        {/* Right - Live Preview */}
-        <Card className="border-border shadow-sm">
+        {/* RIGHT SIDE PREVIEW */}
+        <Card>
           <CardHeader>
             <CardTitle>Live Preview</CardTitle>
-            <CardDescription>
-              Review the assignment details before publishing.
-            </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4 text-sm">
+
+          <CardContent className="space-y-4">
+
             <div className="border rounded-md p-3">
+              <p><b>Title:</b> {title || "—"}</p>
               <p>
-                <b>Title:</b> {title || "—"}
-              </p>
-              <p>
-                <b>Class:</b> {classSection || "—"} •{" "}
+                <b>Class:</b>{" "}
+                {classes.find((c) => c.id === classId)?.name || "—"}  
+                &nbsp;•&nbsp;
                 <b>Subject:</b> {subject || "—"}
               </p>
             </div>
@@ -192,21 +203,19 @@ const CreateAssignment: React.FC = () => {
             <div className="border rounded-md p-3">
               <p>
                 <b>Deadline:</b>{" "}
-                {deadline
-                  ? new Date(deadline).toLocaleString()
-                  : "—"}
+                {deadline ? new Date(deadline).toLocaleString() : "—"}
               </p>
               <p>
-                <b>Late Submissions:</b> {allowLate ? "Allowed" : "Not allowed"}
+                <b>Late Submissions:</b>{" "}
+                {allowLate ? "Allowed" : "Not allowed"}
               </p>
             </div>
 
             <div className="border rounded-md p-3">
               <b>Instructions:</b>
-              <p className="text-muted-foreground">
-                {instructions || "—"}
-              </p>
+              <p className="text-muted-foreground">{instructions || "—"}</p>
             </div>
+
           </CardContent>
         </Card>
       </div>

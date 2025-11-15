@@ -67,25 +67,57 @@ useEffect(() => {
   }
 }, [user]);
 
-
 const fetchAssignments = async () => {
-  const { data, error } = await supabase
+  const userId = user.id;
+
+  // 1️⃣ Fetch student classes
+  const { data: studentClassRows, error: classErr } = await supabase
+    .from("student_classes")
+    .select("class_id")
+    .eq("student_id", userId);
+
+  // 2️⃣ Extract class IDs
+  const classIds = studentClassRows
+    ?.map((r) => r.class_id?.toString().trim())
+    .filter(Boolean) || [];
+
+
+  // 4️⃣ Correct `.in()` query using fetched classIds
+  const { data: classAssignments, error: assignErr } = await supabase
+    .from("assignments")
+    .select("*")
+    .in("class_id", classIds);
+
+  console.log("classAssignments (via IN):", classAssignments);
+  console.log("classAssignments Error:", assignErr);
+
+  // 5️⃣ Fetch submitted assignments
+  const { data: submittedAssignments, error: submittedErr } = await supabase
     .from("assignments")
     .select(`
       *,
       reviews (comments, action, reviewer_role)
     `)
-    .eq("student_id", user.id)
-    .order("created_at", { ascending: false });
+    .eq("student_id", userId);
 
-  if (error) {
-    console.error("Error fetching assignments:", error);
-    return;
-  }
+  console.log("submittedAssignments:", submittedAssignments);
+  console.log("submittedAssignments Error:", submittedErr);
 
-  setAssignments(data || []);
+  // 6️⃣ Merge all
+  const combined = [
+    ...(classAssignments || []).map((a) => ({ ...a, submitted: false })),
+    ...(submittedAssignments || []).map((a) => ({ ...a, submitted: true })),
+  ];
+
+  combined.sort(
+    (a, b) =>
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  );
+
+  console.log("Final Combined Assignments:", combined);
+
+  setAssignments(combined);
 };
-
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -348,7 +380,7 @@ const fetchAssignments = async () => {
   activeSection === "Dashboard" && <Dashboard />
 }
 {
-  activeSection === "Submit / Resubmit"  && <SubmitAssignment user={user} fetchAssignments={fetchAssignments}/>
+  activeSection === "Submit / Resubmit"  && <SubmitAssignment user={user} fetchAssignments={fetchAssignments} assignment={assignments}/>
 }
 {activeSection === "Feedback" && <Feedback user={user}/>}
           {activeSection === "Portfolio" && <Portfolio />}
