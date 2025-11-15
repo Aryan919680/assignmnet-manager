@@ -61,22 +61,31 @@ export default function StudentDashboard({ user }: StudentDashboardProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("Dashboard");
 
-  useEffect(() => {
+useEffect(() => {
+  if (user?.id) {
     fetchAssignments();
-  }, []);
+  }
+}, [user]);
 
-  const fetchAssignments = async () => {
-    const { data } = await supabase
-      .from("assignments")
-      .select(`
-        *,
-        reviews (comments, action, reviewer_role)
-      `)
-      .eq("student_id", user.id)
-      .order("created_at", { ascending: false });
 
-    if (data) setAssignments(data as any);
-  };
+const fetchAssignments = async () => {
+  const { data, error } = await supabase
+    .from("assignments")
+    .select(`
+      *,
+      reviews (comments, action, reviewer_role)
+    `)
+    .eq("student_id", user.id)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Error fetching assignments:", error);
+    return;
+  }
+
+  setAssignments(data || []);
+};
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -341,7 +350,7 @@ export default function StudentDashboard({ user }: StudentDashboardProps) {
 {
   activeSection === "Submit / Resubmit"  && <SubmitAssignment user={user} fetchAssignments={fetchAssignments}/>
 }
-{activeSection === "Feedback" && <Feedback />}
+{activeSection === "Feedback" && <Feedback user={user}/>}
           {activeSection === "Portfolio" && <Portfolio />}
           {activeSection === "AI Companion" && <AICompanion />}
           {activeSection === "Support" && <Support />}

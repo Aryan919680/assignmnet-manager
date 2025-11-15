@@ -2,35 +2,44 @@ import React, { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { User } from "@supabase/supabase-js";
 
-export default function FeedbackRubric() {
+interface FeedbackRubricProps {
+  user: User;
+}
+
+export default function FeedbackRubric({ user }: FeedbackRubricProps) {
   const [feedbackData, setFeedbackData] = useState<any[]>([]);
 
-  useEffect(() => {
+ useEffect(() => {
+    if (!user?.id) return;
+
     const fetchFeedback = async () => {
-     const { data, error } = await supabase.rpc('get_reviews_with_mentor');
+      // ✅ Pass user.id to the RPC
+      const { data, error } = await supabase.rpc("get_reviews_with_mentor", {
+        student_id_param: user.id, // must match your SQL function parameter name
+      });
 
-  if (error) {
-    console.error('RPC error', error);
-    return;
-  }
+      if (error) {
+        console.error("RPC error", error);
+        return;
+      }
 
-  // data is an array of rows returned by the function
-  const formatted = data.map((row: any) => ({
-    id: row.review_id,
-    title: row.assignment?.title,
-    score: row.marks,
-    mentor: row.mentor?.meta?.name || row.mentor?.email || null,
-    why: row.rubric?.reason || "Feedback not provided",
-    rubric: row.rubric?.criteria || [],
-    grade: row.assignment?.grade || "-",
-  }));
+      const formatted = data.map((row: any) => ({
+        id: row.review_id,
+        title: row.assignment?.title,
+        score: row.marks,
+        mentor: row.mentor?.meta?.name || row.mentor?.email || null,
+        why: row.rubric?.reason || "Feedback not provided",
+        rubric: row.rubric?.criteria || [],
+        grade: row.assignment?.grade || "-",
+      }));
 
       setFeedbackData(formatted || []);
     };
 
     fetchFeedback();
-  }, []);
+  }, [user]);
 
   return (
     <div className="min-h-screen text-white p-6 space-y-6">

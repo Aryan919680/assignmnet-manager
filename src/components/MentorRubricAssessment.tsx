@@ -39,7 +39,7 @@ const MentorRubricAssessment: React.FC<MentorRubricAssessmentProps> = ({ onSubmi
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col h-[650px]">
+    <form onSubmit={handleSubmit} className="flex flex-col h-[650px] overflow-hidden">
 
       {/* Scroll area */}
       <div className="flex-1 overflow-y-auto space-y-6 pr-2 pb-20">
@@ -83,15 +83,16 @@ const MentorRubricAssessment: React.FC<MentorRubricAssessmentProps> = ({ onSubmi
             onChange={(e) => setOverallComment(e.target.value)}
           />
         </div>
-
+<div className="bg-background border-t border-border p-4 flex justify-end items-center">
+  <Button type="submit" className="px-6 font-medium rounded-lg">
+    Submit Assessment
+  </Button>
+</div>
       </div>
 
       {/* Sticky footer */}
-      <div className="sticky bottom-0 left-0 bg-background border-t border-border p-4 flex justify-end">
-        <Button type="submit" className="px-6 font-medium">
-          Submit Assessment
-        </Button>
-      </div>
+  
+
     </form>
   );
 };
