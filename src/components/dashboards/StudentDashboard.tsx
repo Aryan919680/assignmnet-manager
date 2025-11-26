@@ -70,54 +70,72 @@ useEffect(() => {
 const fetchAssignments = async () => {
   const userId = user.id;
 
-  // 1️⃣ Fetch student classes
+  // 1️⃣ Get classes the student belongs to
   const { data: studentClassRows, error: classErr } = await supabase
     .from("student_classes")
     .select("class_id")
     .eq("student_id", userId);
 
-  // 2️⃣ Extract class IDs
-  const classIds = studentClassRows
-    ?.map((r) => r.class_id?.toString().trim())
-    .filter(Boolean) || [];
+  if (classErr) {
+    console.error(classErr);
+    return;
+  }
 
+  const classIds =
+    studentClassRows?.map((r) => r.class_id?.toString().trim()).filter(Boolean) ||
+    [];
 
-  // 4️⃣ Correct `.in()` query using fetched classIds
-  const { data: classAssignments, error: assignErr } = await supabase
+  // Prevent empty IN() query
+  if (classIds.length === 0) {
+    setAssignments([]);
+    return;
+  }
+
+  // 2️⃣ Assignments given to the student's class (NOT submitted yet)
+  const { data: classAssignments, error: classAssignErr } = await supabase
     .from("assignments")
     .select("*")
-    .in("class_id", classIds);
+    .in("class_id", classIds)
+    .not("student_id", "is", null)  // Means not submitted
 
-  console.log("classAssignments (via IN):", classAssignments);
-  console.log("classAssignments Error:", assignErr);
-
-  // 5️⃣ Fetch submitted assignments
+  // 3️⃣ Assignments submitted by the student
   const { data: submittedAssignments, error: submittedErr } = await supabase
     .from("assignments")
-    .select(`
+    .select(
+      `
       *,
-      reviews (comments, action, reviewer_role)
-    `)
+      reviews (
+        comments,
+        action,
+        reviewer_role
+      )
+    `
+    )
     .eq("student_id", userId);
 
-  console.log("submittedAssignments:", submittedAssignments);
-  console.log("submittedAssignments Error:", submittedErr);
-
-  // 6️⃣ Merge all
-  const combined = [
-    ...(classAssignments || []).map((a) => ({ ...a, submitted: false })),
-    ...(submittedAssignments || []).map((a) => ({ ...a, submitted: true })),
-  ];
-
-  combined.sort(
-    (a, b) =>
-      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  // 4️⃣ Filter out INVALID submissions (empty file)
+  const validSubmitted = (submittedAssignments || []).filter(
+    (a) =>
+      a.file_path &&
+      a.file_path !== "" &&
+      a.file_path !== null &&
+      a.student_id !== null
   );
 
-  console.log("Final Combined Assignments:", combined);
+  // 5️⃣ Merge all assignments
+  const combined = [
+    ...(classAssignments || []).map((a) => ({ ...a, submitted: false })),
+    ...validSubmitted.map((a) => ({ ...a, submitted: true })),
+  ];
+
+  // 6️⃣ Sort newest first
+  combined.sort(
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  );
 
   setAssignments(combined);
 };
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

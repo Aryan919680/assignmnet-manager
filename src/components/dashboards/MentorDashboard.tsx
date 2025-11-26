@@ -46,11 +46,13 @@ export default function MentorDashboard({ user }: MentorDashboardProps) {
   }, [activeSection, activeTab]);
 
   const fetchAssignments = async () => {
-    const { data: assignmentRows, error: aErr } = await supabase
-      .from("assignments")
-      .select("*")
-      .in("status", ["pending", "rejected"])
-      .order("created_at", { ascending: false });
+   const { data: assignmentRows, error: aErr } = await supabase
+    .from("assignments")
+    .select("*")
+    .in("status", ["pending", "rejected"])
+    .not("student_id", "is", null)        // student_id must exist
+    .not("file_path", "is", null)         // file_path must exist
+    .order("created_at", { ascending: false });
 
     if (aErr) {
       toast.error(aErr.message);
@@ -92,6 +94,7 @@ export default function MentorDashboard({ user }: MentorDashboardProps) {
   };
 
   const handleReviewClick = async (assignment: Assignment) => {
+    console.log(assignment)
     const url = await openPdf(assignment.file_path);
     setPdfUrl(url);
     setSelectedAssignment(assignment);
